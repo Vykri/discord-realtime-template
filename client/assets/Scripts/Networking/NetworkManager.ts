@@ -2,11 +2,12 @@ import { _decorator, Component, director, instantiate, Prefab } from 'cc';
 import { SERVER_WEBSOCKET_URL } from '../Util/Settings';
 const { ccclass, property } = _decorator;
 
-enum ClientToServerCommand {
+export enum ClientToServerCommand {
     JOIN,
+    UPDATE_NETWORK_TRANSFORM,
 }
 
-enum ServerToClientCommand {
+export enum ServerToClientCommand {
     JOIN_SUCCESS,
 }
 
@@ -17,26 +18,25 @@ export class NetworkManager extends Component {
 
     private _ws: WebSocket;
 
-    public static get isServer(): boolean {
-        return true;
-    }
+    private static _instance: NetworkManager;
+    public static get instance(): NetworkManager { return this._instance; }
+    private static set instance(val) { this._instance = val; }
 
     protected start(): void {
-        if (NetworkManager.isServer) {
+        if (NetworkManager.instance) {
+            this.destroy();
+            return;
+        }
+        NetworkManager.instance = this;
 
-        } else {
-            this.connectToServer();
+        this.connectToServer();
+    }
+
+    protected onDestroy(): void {
+        if (NetworkManager.instance === this) {
+            NetworkManager.instance = null;
         }
     }
-
-    // Server //
-
-    private serverOnJoin(data: Object) {
-        const player = instantiate(this.playerPrefab);
-        player.parent = director.getScene();
-    }
-
-    // Client //
 
     public sendToServer(cmd: ClientToServerCommand, data: Object = {}): void {
         this._ws.send(JSON.stringify({
@@ -60,5 +60,10 @@ export class NetworkManager extends Component {
         this._ws.onopen = () => {
             this.sendToServer(ClientToServerCommand.JOIN);
         };
+    }
+
+    private onPlayerJoin() {
+        const player = instantiate(this.playerPrefab);
+        player.parent = director.getScene();
     }
 }

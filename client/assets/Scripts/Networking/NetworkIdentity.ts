@@ -8,10 +8,4 @@ export class NetworkIdentity extends Component {
     private _identity: string;
     public get id(): string { return this._identity; }
     private set id(val) { this._identity = val; }
-
-    protected start(): void {
-        if (!NetworkManager.isServer) {
-            return;
-        }
-    }
 }
