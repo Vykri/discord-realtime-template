@@ -592,6 +592,7 @@
     "__prefab": {
       "__id__": 25
     },
+    "shouldLockPointer": true,
     "_id": ""
   },
   {
@@ -607,6 +608,7 @@
       "__id__": 0
     },
     "fileId": "20MPDnek9CBZhyq5pWN63w",
+    "instance": null,
     "targetOverrides": null
   }
 ]

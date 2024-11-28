@@ -1,6 +1,8 @@
-import { _decorator, Component, Vec3, RigidBody, Vec2, Camera, ICollisionEvent, CapsuleCollider, Quat, PhysicsSystem } from 'cc';
+import { _decorator, Component, Vec3, RigidBody, Vec2, Camera, ICollisionEvent, CapsuleCollider, Quat, PhysicsSystem, mat4, Mat4, Node } from 'cc';
 import { ActionType, PlayerInput, InputEvent } from './PlayerInput';
 const { ccclass, property } = _decorator;
+
+const DEGREES_TO_RADIANS_CONVERSTION_FACTOR = Math.PI / 180;
 
 @ccclass('PlayerController')
 export class PlayerController extends Component {
@@ -15,7 +17,8 @@ export class PlayerController extends Component {
     private _rb: RigidBody;
     private _collider: CapsuleCollider;
     
-    private _camOffset: Vec3;
+    private _camDist: number;
+    private _camHeightOffset: Vec3;
     private _camYRotation: number = 0;
     private _camXRotation: number = 0;
     private _isGrounded: boolean = false;
@@ -26,7 +29,8 @@ export class PlayerController extends Component {
         this._collider = this.node.getComponent(CapsuleCollider);
 
         this.camera.node.setParent(this.node.parent);
-        this._camOffset = this.camera.node.position.clone().subtract(this.node.position);
+        this._camDist = this.camera.node.position.z;
+        this._camHeightOffset = new Vec3(0, this.camera.node.position.y, 0);
 
         this._collider.on('onCollisionStay', this.onCollisionStay, this);
         this._collider.on('onCollisionExit', this.onCollisionExit, this);
@@ -49,14 +53,15 @@ export class PlayerController extends Component {
     }
 
     private handleMovement() {
-        let movement = new Vec3();
-        this._rb.getLinearVelocity(movement);
+        let prevVel = new Vec3();
+        this._rb.getLinearVelocity(prevVel);
 
         const moveInput = this._input.actions[ActionType.MOVE].value as Vec2;
-        const moveVec = new Vec3(moveInput.x, 0, moveInput.y).normalize().multiplyScalar(this.moveSpeed);
-        movement = new Vec3(moveVec.x, movement.y, moveVec.z);
+        let moveVec = new Vec3(moveInput.x, 0, moveInput.y).normalize().multiplyScalar(this.moveSpeed);
+        Vec3.rotateY(moveVec, moveVec, Vec3.ZERO, this.camera.node.eulerAngles.y * DEGREES_TO_RADIANS_CONVERSTION_FACTOR);
+        moveVec = new Vec3(moveVec.x, prevVel.y, moveVec.z);
 
-        this._rb.setLinearVelocity(movement);
+        this._rb.setLinearVelocity(moveVec);
     }
 
     private handleCamera() {
@@ -78,9 +83,19 @@ export class PlayerController extends Component {
     }
 
     private applyCamera() {
-        // TODO: This does not properly rotate the camera around the player
         this.node.setRotationFromEuler(0, this._camYRotation, 0);
-        this.camera.node.setRotationFromEuler(this._camXRotation, 0, 0);
+        
+        // TODO: There is probably a better way of getting a forward vector from euler angles than making a node
+        const pivot = new Node();
+        pivot.setRotationFromEuler(this._camXRotation, this._camYRotation, 0);
+        let camPos = pivot.forward.clone()
+                .multiplyScalar(-this._camDist)
+                .add(this._camHeightOffset)
+                .add(this.node.worldPosition);
+        pivot.destroy();
+
+        this.camera.node.setWorldPosition(camPos);
+        this.camera.node.lookAt(this.node.worldPosition.clone().add(this._camHeightOffset));
     }
 
     private onCollisionStay(event: ICollisionEvent) {

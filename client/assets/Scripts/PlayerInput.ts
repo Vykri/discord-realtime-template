@@ -1,5 +1,5 @@
-import { _decorator, Component, Input, input, EventKeyboard, KeyCode, EventTarget, EventMouse, Director, director, Vec2 } from 'cc';
-const { ccclass } = _decorator;
+import { _decorator, Component, Input, input, EventKeyboard, KeyCode, EventTarget, EventMouse, Director, director, Vec2, game } from 'cc';
+const { ccclass, property } = _decorator;
 
 enum ButtonInputType {
     NONE,
@@ -535,7 +535,7 @@ class Vec2Input extends EventTarget {
         if (!Array.isArray(binding)) {
             binding = [binding];
         }
-        this._bindings = binding.reduce((acc, binding) => ({...acc, [binding]: Vec2.ZERO}), {});
+        this._bindings = binding.reduce((acc, bind) => ({...acc, [bind]: Vec2.ZERO}), {});
 
         input.on(Input.EventType.MOUSE_MOVE, this.onMouseMove, this);
         director.on(Director.EVENT_AFTER_UPDATE, this.onAfterUpdate, this);
@@ -615,7 +615,9 @@ class Vec2Input extends EventTarget {
     }
 
     private onMouseMove(event: EventMouse) {
-        this.update(Vec2InputType.MOUSE_MOVE_DELTA, event.getDelta());
+        if (document.pointerLockElement == game.canvas) {
+            this.update(Vec2InputType.MOUSE_MOVE_DELTA, event.getDelta());
+        }
     }
 }
 
@@ -794,6 +796,8 @@ export enum ActionType {
 @ccclass('PlayerInput')
 export class PlayerInput extends Component {
 
+    @property private readonly shouldLockPointer: boolean = false;
+
     // TODO: Move this to read from a file that can be changed in settings
     private _actions: Partial<Record<ActionType, ButtonInput|Vec1Input|Vec1Input_ButtonComposite|Vec2Input|Vec2Input_ButtonComposite>> = {
         [ActionType.LOOK]: new Vec2Input(Vec2InputType.MOUSE_MOVE_DELTA),
@@ -808,7 +812,22 @@ export class PlayerInput extends Component {
     };
     public get actions() { return this._actions; }
 
+    protected start(): void {
+        if (this.shouldLockPointer) {
+            input.on(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        }
+    }
+
     protected onDestroy() {
         Object.values(this.actions).forEach(input => input.destroy());
+        if (this.shouldLockPointer) {
+            input.off(Input.EventType.MOUSE_DOWN, this.onMouseDown, this);
+        }
+    }
+
+    private onMouseDown(event: EventMouse) {
+        if (this.shouldLockPointer) {
+            game.canvas.requestPointerLock();
+        }
     }
 }
