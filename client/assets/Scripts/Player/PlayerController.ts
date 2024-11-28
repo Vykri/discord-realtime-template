@@ -1,5 +1,5 @@
-import { _decorator, Component, Vec3, RigidBody, Vec2, Camera, ICollisionEvent, CapsuleCollider, Quat, PhysicsSystem, mat4, Mat4, Node } from 'cc';
-import { ActionType, PlayerInput, InputEvent } from './PlayerInput';
+import { _decorator, Component, Vec3, RigidBody, Vec2, Camera, ICollisionEvent, CapsuleCollider, PhysicsSystem, Node } from 'cc';
+import { ActionType, PlayerInput, InputEvent } from './PlayerInput'
 const { ccclass, property } = _decorator;
 
 const DEGREES_TO_RADIANS_CONVERSTION_FACTOR = Math.PI / 180;
