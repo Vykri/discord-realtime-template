@@ -4,7 +4,7 @@ const { ccclass, property } = _decorator;
 
 export enum ClientToServerCommand {
     JOIN,
-    UPDATE_NETWORK_TRANSFORM,
+    UPDATE_COMPONENT,
 }
 
 export enum ServerToClientCommand {
